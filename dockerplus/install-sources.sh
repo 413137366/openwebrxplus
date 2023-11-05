@@ -14,7 +14,7 @@ pinfo "Building from sources..."
 pinfo "MAKEFLAGS: ${MAKEFLAGS:-}"
 pinfo "PLATFORM: ${PLATFORM}"
 
-echo ${BUILD_DATE:-} > /build-sources-date
+echo ${BUILD_DATE:-unknown} > /build-sources-date
 
 pinfo "Install dev packages..."
 #BUILD_PACKAGES="git cmake make patch wget sudo gcc g++ libusb-1.0-0-dev libsoapysdr-dev debhelper cmake libprotobuf-dev protobuf-compiler libcodecserver-dev build-essential xxd qt5-qmake libpulse-dev libfaad-dev libopus-dev libfftw3-dev  pkg-config libglib2.0-dev libconfig++-dev libliquid-dev libairspyhf-dev libpopt-dev libiio-dev libad9361-dev libhidapi-dev libasound2-dev qtmultimedia5-dev  libqt5serialport5-dev qttools5-dev qttools5-dev-tools libboost-all-dev libfftw3-dev libreadline-dev libusb-1.0-0-dev libudev-dev asciidoctor gfortran libhamlib-dev libsndfile1-dev"
@@ -22,7 +22,7 @@ BUILD_PACKAGES="git cmake make patch wget sudo libusb-1.0-0-dev libsoapysdr-dev 
 apt update
 apt install -y --no-install-recommends $BUILD_PACKAGES
 
-mkdir -p /build_cache/usr/local/bin
+mkdir -p $BUILD_ROOTFS/usr/local/bin
 
 # has deb
 if ! ls soapysdr0.8-module-airspyhf*.deb 1>/dev/null 2>&1; then
@@ -47,7 +47,7 @@ else
 fi
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/perseustest ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/perseustest ]; then
   pinfo "Install PerseusSDR..."
   if [ -d "libperseus-sdr" ]; then
     cd libperseus-sdr
@@ -61,7 +61,7 @@ if ! [ -f rootfs/usr/local/bin/perseustest ]; then
   ./bootstrap.sh
   ./configure
   make
-  make install DESTDIR=/build_cache/rootfs
+  make install DESTDIR=$BUILD_ROOTFS/
   cd ..
 else
   pinfo "PerseusSDR already built..."
@@ -69,7 +69,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/rockprog ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/rockprog ]; then
   pinfo "Install RockProg..."
   if [ -d "rockprog-linux" ]; then
     cd rockprog-linux
@@ -81,7 +81,7 @@ if ! [ -f rootfs/usr/local/bin/rockprog ]; then
 
   cd rockprog-linux
   make
-  install -D rockprog /build_cache/rootfs/usr/local/bin/
+  install -D rockprog $BUILD_ROOTFS/usr/local/bin/
   cd ..
 else
   pinfo "RockProg already built..."
@@ -111,7 +111,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/lib/SoapySDR/modules*/libSoapyRadioberrySDR.so ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/lib/SoapySDR/modules*/libSoapyRadioberrySDR.so ]; then
   pinfo "Install RaddioberrySDR..."
   if [ -d "Radioberry-2.x" ]; then
     cd Radioberry-2.x
@@ -131,7 +131,7 @@ fi
 
 
 # TODO: has deb
-if ! [ -f rootfs/usr/local/lib/SoapySDR/modules*/libFCDPPSupport.so ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/lib/SoapySDR/modules*/libFCDPPSupport.so ]; then
   pinfo "Install FCDPP..."
   if [ -d "SoapyFCDPP" ]; then
     cd SoapyFCDPP
@@ -149,7 +149,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/hpsdrconnector ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/hpsdrconnector ]; then
   pinfo "Install HPSDR..."
   if [ -d "hpsdrconnector" ]; then
     cd hpsdrconnector
@@ -163,7 +163,7 @@ if ! [ -f rootfs/usr/local/bin/hpsdrconnector ]; then
   cd hpsdrconnector
   git checkout v0.6.1
   go build
-  install -D -m 0755 hpsdrconnector /build_cache/rootfs/usr/local/bin/
+  install -D -m 0755 hpsdrconnector $BUILD_ROOTFS/usr/local/bin/
   cd ..
 else
   pinfo "HPSDR already built..."
@@ -184,6 +184,8 @@ if ! ls runds-connector_*.deb 1>/dev/null 2>&1; then
 
   # cmakebuild runds_connector master
   cd runds_connector
+  # git checkout 435364002d756735015707e7f59aa40e8d743585
+  git checkout 06ca993a3c81ddb0a2581b1474895da07752a9e1
   dpkg-buildpackage -b
   cd ..
 else
@@ -192,12 +194,12 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/freedv_rx ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/freedv_rx ]; then
   pinfo "Install FreeDV..."
   if [ -d "codec2" ]; then
     cd codec2
     git checkout .
-    git checkout master
+    git checkout main
     git pull
     cd ..
   else
@@ -206,20 +208,23 @@ if ! [ -f rootfs/usr/local/bin/freedv_rx ]; then
 
   cd codec2
   git checkout 1.2.0
-  mkdir build
+  mkdir -p build
   cd build
   cmake ..
   make
-  make install DESTDIR=/build_cache/rootfs
-  install -D -m 0755 src/freedv_rx /build_cache/rootfs/usr/local/bin
+  make install DESTDIR=$BUILD_ROOTFS/
+  install -D -m 0755 src/freedv_rx $BUILD_ROOTFS/usr/local/bin
   cd ../..
 else
   pinfo "FreeDV already built..."
 fi
+cp -a $BUILD_ROOTFS/usr/local/include/* /usr/local/include/
+cp -a $BUILD_ROOTFS/usr/local/lib/* /usr/local/lib/
+
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/m17-demod ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/m17-demod ]; then
   pinfo "Install M17..."
   if [ -d "m17-cxx-demod" ]; then
     cd m17-cxx-demod
@@ -238,7 +243,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/msk144decoder ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/msk144decoder ]; then
   pinfo "Install MSK144..."
   if [ -d "msk144decoder" ]; then
     cd msk144decoder
@@ -257,7 +262,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/dream ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/dream ]; then
   pinfo "Install DRM..."
   if ! [ -d "dream" ]; then
     rm -f dream-2.1.1-svn808.tar.gz
@@ -271,7 +276,7 @@ if ! [ -f rootfs/usr/local/bin/dream ]; then
   cd dream
   qmake CONFIG+=console
   make
-  install -D -m 0755 dream /build_cache/rootfs/usr/local/bin/
+  install -D -m 0755 dream $BUILD_ROOTFS/usr/local/bin/
   cd ..
 else
   pinfo "DRM already built..."
@@ -279,7 +284,7 @@ fi
 
 
 # TODO: has deb
-if ! [ -f rootfs/usr/local/bin/dump1090 ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/dump1090 ]; then
   pinfo "Install Dump1090..."
   if [ -d "dump1090" ]; then
     cd dump1090
@@ -292,14 +297,14 @@ if ! [ -f rootfs/usr/local/bin/dump1090 ]; then
 
   cd dump1090
   make
-  install -D -m 0755 dump1090 /build_cache/rootfs/usr/local/bin/
+  install -D -m 0755 dump1090 $BUILD_ROOTFS/usr/local/bin/
   cd ..
 else
   pinfo "Dump1090 already built..."
 fi
 
 # no deb
-if ! [ -f rootfs/usr/local/lib/libacars-2.so ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/lib/libacars-2.so ]; then
   pinfo "Install LibACARS..."
   if [ -d "libacars" ]; then
     cd libacars
@@ -316,13 +321,13 @@ else
   pinfo "LibACARS already built..."
 fi
 mkdir -p /usr/local/lib/pkgconfig/ /usr/local/include/
-cp -a /build_cache/rootfs/usr/local/include/libacars* /usr/local/include/
-cp -a /build_cache/rootfs/usr/local/lib/libacars* /usr/local/lib/
-cp -a /build_cache/rootfs/usr/local/lib/pkgconfig/libacars*.pc /usr/local/lib/pkgconfig/
+cp -a $BUILD_ROOTFS/usr/local/include/libacars* /usr/local/include/
+cp -a $BUILD_ROOTFS/usr/local/lib/libacars* /usr/local/lib/
+cp -a $BUILD_ROOTFS/usr/local/lib/pkgconfig/libacars*.pc /usr/local/lib/pkgconfig/
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/acarsdec ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/acarsdec ]; then
   pinfo "Install ACARSdec..."
   if [ -d "acarsdec" ]; then
     cd acarsdec
@@ -342,7 +347,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/dumphfdl ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/dumphfdl ]; then
   pinfo "Install DumpHFDL..."
   if [ -d "dumphfdl" ]; then
     cd dumphfdl
@@ -361,7 +366,7 @@ fi
 
 
 # no deb
-if ! [ -f rootfs/usr/local/bin/dumpvdl2 ]; then
+if ! [ -f $BUILD_ROOTFS/usr/local/bin/dumpvdl2 ]; then
   pinfo "Install DumpVDL2..."
   if [ -d "dumpvdl2" ]; then
     cd dumpvdl2
@@ -379,10 +384,10 @@ else
 fi
 
 # no deb
-if ! [ -d rootfs/usr/share/aprs-symbols ]; then
+if ! [ -d $BUILD_ROOTFS/usr/share/aprs-symbols ]; then
   pinfo "Install APRS Symbols..."
-  git clone https://github.com/hessu/aprs-symbols rootfs/usr/share/aprs-symbols
-  pushd rootfs/usr/share/aprs-symbols
+  git clone https://github.com/hessu/aprs-symbols $BUILD_ROOTFS/usr/share/aprs-symbols
+  pushd $BUILD_ROOTFS/usr/share/aprs-symbols
   git checkout 5c2abe2658ee4d2563f3c73b90c6f59124839802
   # remove unused files (including git meta information)
   rm -rf .git aprs-symbols.ai aprs-sym-export.js
@@ -394,7 +399,7 @@ fi
 
 
 
-rm -f /build_cache/*.buildinfo
-rm -f /build_cache/*.changes
+rm -f $BUILD_CACHE/*.buildinfo
+rm -f $BUILD_CACHE/*.changes
 
 pok "Sources done."

@@ -30,14 +30,17 @@ case `uname -m` in
     ;;
 esac
 
-if [ ! -d /build_cache ]; then
+if [ ! -d /build_cache ] && [ -z "$ENTER_SHELL" ]; then
   echo;echo;echo;
   perror "ERROR: This build must have a volume mounted in /build_cache"
   echo;echo;echo
   exit 1
 fi
 
-cd /build_cache
+export BUILD_CACHE=/build_cache/`uname -m`
+export BUILD_ROOTFS=/build_cache/`uname -m`/rootfs
+mkdir -p $BUILD_CACHE $BUILD_ROOTFS
+cd $BUILD_CACHE
 
 function cmakebuild() {
   cd $1
@@ -52,7 +55,7 @@ function cmakebuild() {
   cd build
   cmake ${CMAKE_ARGS:-} ..
   make
-  make install DESTDIR=/build_cache/rootfs/
+  make install DESTDIR=$BUILD_ROOTFS/
   cd ../..
 }
 
@@ -64,3 +67,5 @@ function apt-install-depends() {
         -e 's/^Inst \([^ ]\+\) .*$/\1/p' \
       | xargs apt install
 }
+
+alias systemctl=true

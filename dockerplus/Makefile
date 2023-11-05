@@ -2,6 +2,7 @@ PRODUCT=openwebrxplus
 DATE=$(shell date +%F)
 SHA=$(shell git rev-parse --short HEAD)
 #APT_PROXY=
+# to use APT proxy, run: docker compose up -d
 APT_PROXY=http://192.168.175.10:3142
 
 default: error
@@ -93,6 +94,7 @@ add_admin:
 	docker exec -it $(DOCKER_IMAGE) /usr/bin/openwebrx admin adduser admin
 
 dev:
+	@mkdir -p work/owrx/var work/owrx/etc
 	docker run -it --rm \
 		-p 8073:8073 \
 		--device /dev/bus/usb \

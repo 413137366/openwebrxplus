@@ -38,14 +38,14 @@ echo ================================================================
 echo "to stop openwebrx and then start it:"
 echo "s6-rc -d change openwebrx"
 echo "s6-rc -u change openwebrx"
-echo "you can use 'stop' and 'start' aliases too..."
+echo "you can use 'stop-owrx' and 'start-owrx' aliases too..."
 echo;echo;echo
 echo "more info: https://skarnet.org/software/s6-rc/faq.html"
 echo ================================================================
 echo;echo;echo
 
-alias stop='s6-rc -d change openwebrx'
-alias start='s6-rc -u change openwebrx'
+alias stop-owrx='s6-rc -d change openwebrx'
+alias start-owrx='s6-rc -u change openwebrx'
 _EOF_
 
 
@@ -91,16 +91,18 @@ e95e057958b59dd290385c1698d2dbfe  s6-overlay-aarch64.tar.xz
 '
 mkdir -p s6
 pushd s6
-if [ -f "s6-overlay-noarch.tar.xz" ] && [ -f "s6-overlay-`uname -m`.tar.xz" ] && echo "$MD5SUMS" | md5sum --ignore-missing -c; then
+S6_ARCH=`uname -m`
+if [[ $S6_ARCH == "armv7"* ]]; then S6_ARCH="armhf"; fi
+if [ -f "s6-overlay-noarch.tar.xz" ] && [ -f "s6-overlay-$S6_ARCH.tar.xz" ] && echo "$MD5SUMS" | md5sum --ignore-missing -c; then
   pinfo "skipping download..."
 else
   pinfo "downloading S6"
   rm -f s6-overlay-noarch.tar.xz s6-overlay-x86_64.tar.xz
   wget https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-noarch.tar.xz
-  wget https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-`uname -m`.tar.xz
+  wget https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-$S6_ARCH.tar.xz
 fi
 tar -Jxpf s6-overlay-noarch.tar.xz -C /
-tar -Jxpf s6-overlay-`uname -m`.tar.xz -C /
+tar -Jxpf s6-overlay-$S6_ARCH.tar.xz -C /
 popd
 
 

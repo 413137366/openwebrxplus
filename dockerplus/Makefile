@@ -3,7 +3,8 @@ DATE=$(shell date +%F)
 SHA=$(shell git rev-parse --short HEAD)
 #APT_PROXY=
 # to use APT proxy, run: docker compose up -d
-APT_PROXY=http://192.168.175.10:3142
+APT_PROXY=http://192.168.175.50:3142
+ARCH=$(shell uname -m)
 
 default: error
 ifeq ($(VARIANT),nightly)
@@ -39,6 +40,8 @@ You need to specify the variant of the image:
 You can specify env var for MAKEFLAGS inside docker build like this:
 # DOCKER_MAKEFLAGS='-j4' make nightly
 
+Change the build arch with ARCH= flag
+
 To run a container:
 # make VARIANT=nightly run
 # make VARIANT=release VERSION=1.2.33 run
@@ -68,6 +71,7 @@ build:
 	@echo "Building $(DOCKER_IMAGE):$(DOCKER_TAG)"
 	@mkdir -p cache
 	docker build \
+		--arch='$(ARCH)' \
 		--build-arg MAKEFLAGS='${DOCKER_MAKEFLAGS}' \
 		--build-arg BUILD_DATE='$(DATE)' \
 		--build-arg BUILD_SHA='$(SHA)' \

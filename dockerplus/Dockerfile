@@ -9,7 +9,7 @@ RUN /tmp/install-base.sh
 FROM base as sources
 ARG MAKEFLAGS
 ARG APT_PROXY
-# ARG BUILD_DATE
+ARG BUILD_DATE
 ADD files /files
 COPY install-sources.sh /tmp
 COPY --from=golang:bookworm /usr/local/go /usr/local/go
@@ -23,7 +23,7 @@ ARG OWRXVERSION
 ARG MAKEFLAGS
 ARG BUILD_DATE
 ARG BUILD_SHA
-# COPY --from=sources /build-sources-date /build-sources-date
+COPY --from=sources /build-sources-date /build-sources-date
 COPY install-owrx.sh /tmp
 COPY /files/run.sh /run.sh
 RUN /tmp/install-owrx.sh

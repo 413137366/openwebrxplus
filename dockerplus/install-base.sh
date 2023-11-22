@@ -20,7 +20,7 @@ fi
 # ease my life
 cat >> /root/.bashrc << _EOF_
 # if docker is started with http_proxy env - we will give it to apt
-if [ -n "${http_proxy}" ]; then echo 'Acquire::http { Proxy "'${http_proxy}'"; };' > /etc/apt/apt.conf.d/51cache; fi
+if [ -n "${http_proxy:-}" ]; then echo 'Acquire::http { Proxy "'${http_proxy:-}'"; };' > /etc/apt/apt.conf.d/51cache; fi
 
 # why is this not the default?!?
 export LS_OPTIONS='--color=auto --group-directories-first -p'

@@ -1,10 +1,12 @@
+SHELL:=/bin/bash
 PRODUCT=openwebrxplus
 DATE=$(shell date +%F)
 SHA=$(shell git rev-parse --short HEAD)
-#APT_PROXY=
 # to use APT proxy, run: docker compose up -d
+#APT_PROXY=
 APT_PROXY=http://192.168.175.50:3142
 ARCH=$(shell uname -m)
+IS_PODMAN=$(shell if ! docker buildx ls; then echo 1; fi)
 
 default: error
 ifeq ($(VARIANT),nightly)
@@ -31,7 +33,6 @@ default: error
 endif
 
 define help =
-
 
 You need to specify the variant of the image:
 # make nightly
@@ -67,6 +68,7 @@ else
 	$(MAKE) VARIANT=release build VERSION=$(VERSION)
 endif
 
+ifeq ($(IS_PODMAN),1)
 build:
 	@echo "Building $(DOCKER_IMAGE):$(DOCKER_TAG)"
 	@mkdir -p cache
@@ -82,6 +84,54 @@ build:
 		-v `pwd`/cache:/build_cache \
 		-t $(DOCKER_IMAGE):$(DOCKER_TAG) \
 		-t $(DOCKER_IMAGE) .
+else
+build:
+	@echo "Building $(DOCKER_IMAGE):$(DOCKER_TAG)"
+	@mkdir -p cache
+	@# create docker builder https://docs.docker.com/build/building/multi-platform/
+	@# we enable networking so the builder container has access to the host network (needed for registry)
+	@echo -e "\n\nCreating docker builder for multiarch...\n\n"
+	@docker buildx create \
+		--name owrxp-builder \
+		--driver docker-container \
+		--bootstrap \
+		--use \
+		--driver-opt network=host \
+		|| true # ignore errors if already created
+	@# create another docker container for local registry.
+	@# we need this to store our -base image, because docker builder always try to pull the -base image
+	@# from dockerhub and not use the localy present -base image for building the -full image.
+	@#@echo -e "\n\nCreating local docker registry...\n\n"
+	@#@docker container rm -vf registry 2>/dev/null || true # remove an existing registry container (ignoring errors)
+	@#@docker run -d --name registry --network=host registry:2 # create new registry container
+	@# build the -base image and store it in local registry (see the tags)
+	@echo -e "\n\nBuilding the base image for AMD64, ARM64 and ARM32v7.\n\n"
+	time docker buildx build \
+		--platform linux/amd64 \
+		--build-context mycache=`pwd`/cache \
+		--cache-from type=local,src=`pwd`/cache \
+		--cache-to type=local,dest=`pwd`/cache \
+		--build-arg MAKEFLAGS='${DOCKER_MAKEFLAGS}' \
+		--build-arg BUILD_DATE='$(DATE)' \
+		--build-arg BUILD_SHA='$(SHA)' \
+		--build-arg PRODUCT='$(PRODUCT)' \
+		--build-arg VARIANT='$(VARIANT)' \
+		--build-arg OWRXVERSION='$(VERSION)' \
+		--build-arg APT_PROXY='$(APT_PROXY)' \
+		-t $(DOCKER_IMAGE):$(DOCKER_TAG) \
+		-t $(DOCKER_IMAGE) \
+		--pull \
+		--progress=plain \
+		.
+	@#--push
+	@#--platform linux/amd64,linux/arm64,linux/arm/v7
+	@#--cache-from=type=local,src=`pwd`/cache
+	@#--cache-to=type=local,dest=`pwd`/cache
+	@echo -e "\n\nRemoving docker builder (keeping state/caches for next use)...\n\n"
+	@docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build
+	@#@echo -e "\n\nRemoving local docker registry...\n\n"
+	@#@docker container rm -vf registry
+endif
 
 run:
 	@mkdir -p work/owrx/var work/owrx/etc

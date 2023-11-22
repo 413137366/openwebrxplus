@@ -30,7 +30,7 @@ case `uname -m` in
     ;;
 esac
 
-if [ ! -d /build_cache ] && [ -z "$ENTER_SHELL" ]; then
+if [ ! -d /build_cache ] && [ -z "${ENTER_SHELL:-}" ]; then
   echo;echo;echo;
   perror "ERROR: This build must have a volume mounted in /build_cache"
   echo;echo;echo

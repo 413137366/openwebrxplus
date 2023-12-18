@@ -12,7 +12,7 @@ Plugins.utils._version = 0.1;
  * Wrap an existing function with before and after callbacks.
  * @param {string} name The name of function to wrap with before and after callbacks.
  * @param {function(orig, thisArg, args):boolean} before_cb Callback before original. Return true to call the original.
- * @param {function(result):void} after_cb Callback after original, will receive the result of original
+ * @param {function(result, orig, thisArg, args):void} after_cb Callback after original, will receive the result of original
  * @param {object} obj [optional] Object to look for function into. Default is 'window'
  * @description
  *   - Before Callback:
@@ -24,6 +24,8 @@ Plugins.utils._version = 0.1;
  *   - After Callback:
  *     - Params:
  *       - res: Result of the original function
+ *       - thisArg: local 'this' for the original function
+ *       - args: arguments passed to the original function
  *
  * @example
  * // Using before and after callbacks.
@@ -36,7 +38,7 @@ Plugins.utils._version = 0.1;
  *     }
  *     return true; // always return true, to call the original function
  *   },
- *   function (res) { // after callback
+ *   function (res, thisArg, args) { // after callback
  *     console.log(res);
  *   }
  * );
@@ -51,7 +53,7 @@ Plugins.utils._version = 0.1;
  *     do_something_after_original(res);
  *     return false; // to prevent calling the original and after_cb
  *   },
- *   function (res) { // after callback
+ *   function (res, thisArg, args) { // after callback
  *     // ignored
  *   }
  * );
@@ -67,7 +69,7 @@ Plugins.utils.wrap_func = function (name, before_cb, after_cb, obj = window) {
   var proxy = new Proxy(obj[name], {
     apply: function (target, thisArg, args) {
       if (before_cb(target, thisArg, args))
-        after_cb(fn_original.apply(thisArg, args));
+        after_cb(fn_original.apply(thisArg, args), thisArg, args);
     }
   });
   obj[name] = proxy;
